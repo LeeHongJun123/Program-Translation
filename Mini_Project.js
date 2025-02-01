@@ -1,8 +1,8 @@
-// Custom Command Language Interpreter
-
-// Grammar Rules (BNF Notation):
-// Command -> create file <filename> | delete file <filename> | exit
-// <filename> -> word(.word)?
+const fs = require("fs");
+const readline = require("readline").createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
 
 // Token Types
 const TOKEN_TYPES = {
@@ -45,7 +45,11 @@ function parseCommand(tokens) {
   }
 
   if (firstToken.value === "create" || firstToken.value === "delete") {
-    if (tokens.length === 3 && tokens[1].value === "file" && tokens[2].type === TOKEN_TYPES.FILENAME) {
+    if (
+      tokens.length === 3 &&
+      tokens[1].value === "file" &&
+      tokens[2].type === TOKEN_TYPES.FILENAME
+    ) {
       return true; // Valid create/delete file command
     }
   }
@@ -53,13 +57,29 @@ function parseCommand(tokens) {
   return false; // Invalid command
 }
 
+// File System Operations
+function createFile(filename) {
+  fs.writeFile(filename, "", (err) => {
+    if (err) {
+      console.error(`Error creating file: ${err.message}`);
+    } else {
+      console.log(`File created: ${filename}`);
+    }
+  });
+}
+
+function deleteFile(filename) {
+  fs.unlink(filename, (err) => {
+    if (err) {
+      console.error(`Error deleting file: ${err.message}`);
+    } else {
+      console.log(`File deleted: ${filename}`);
+    }
+  });
+}
+
 // Main Function: Run the interpreter
 function runInterpreter() {
-  const readline = require("readline").createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-
   function prompt() {
     readline.question("Enter a command: ", (input) => {
       if (input.trim().toLowerCase() === "exit") {
@@ -76,6 +96,16 @@ function runInterpreter() {
       const isValid = parseCommand(tokens);
       if (isValid) {
         console.log("Syntax Analysis: Valid command");
+
+        // Execute the command
+        const command = tokens[0].value;
+        const filename = tokens[2].value;
+
+        if (command === "create") {
+          createFile(filename);
+        } else if (command === "delete") {
+          deleteFile(filename);
+        }
       } else {
         console.log("Syntax Analysis: Invalid command");
       }
