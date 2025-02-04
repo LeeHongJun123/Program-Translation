@@ -8,6 +8,7 @@ const readline = require("readline").createInterface({
 const TOKEN_TYPES = {
   KEYWORD: "KEYWORD", // create, delete, exit
   FILENAME: "FILENAME", // report.txt, data.json
+  TO: "TO", // to (used in rename and copy)
 };
 
 // Lexical Analysis: Tokenize the input
@@ -20,8 +21,10 @@ function tokenize(input) {
     const value = match[0];
     let type;
 
-    if (value === "create" || value === "delete" || value === "exit") {
+    if (value === "create" || value === "delete" || value === "exit" || value === "rename" || value === "copy") {
       type = TOKEN_TYPES.KEYWORD;
+    } else if (value === "to") {
+      type = TOKEN_TYPES.TO;
     } else {
       type = TOKEN_TYPES.FILENAME;
     }
@@ -54,6 +57,30 @@ function parseCommand(tokens) {
     }
   }
 
+  if (firstToken.value === "rename") {
+    if (
+      tokens.length === 5 &&
+      tokens[1].value === "file" &&
+      tokens[2].type === TOKEN_TYPES.FILENAME &&
+      tokens[3].value === "to" &&
+      tokens[4].type === TOKEN_TYPES.FILENAME
+    ) {
+      return true; // Valid rename file command
+    }
+  }
+
+  if (firstToken.value === "copy") {
+    if (
+      tokens.length === 5 &&
+      tokens[1].value === "file" &&
+      tokens[2].type === TOKEN_TYPES.FILENAME &&
+      tokens[3].value === "to" &&
+      tokens[4].type === TOKEN_TYPES.FILENAME
+    ) {
+      return true; // Valid copy file command
+    }
+  }
+
   return false; // Invalid command
 }
 
@@ -74,6 +101,26 @@ function deleteFile(filename) {
       console.error(`Error deleting file: ${err.message}`);
     } else {
       console.log(`File deleted: ${filename}`);
+    }
+  });
+}
+
+function renameFile(oldname, newname) {
+  fs.rename(oldname, newname, (err) => {
+    if (err) {
+      console.error(`Error renaming file: ${err.message}`);
+    } else {
+      console.log(`File renamed from ${oldname} to ${newname}`);
+    }
+  });
+}
+
+function copyFile(source, destination) {
+  fs.copyFile(source, destination, (err) => {
+    if (err) {
+      console.error(`Error copying file: ${err.message}`);
+    } else {
+      console.log(`File copied from ${source} to ${destination}`);
     }
   });
 }
@@ -105,6 +152,10 @@ function runInterpreter() {
           createFile(filename);
         } else if (command === "delete") {
           deleteFile(filename);
+        } else if (command === "rename") {
+          renameFile(filename, tokens[4].value);
+        } else if (command === "copy") {
+          copyFile(filename, tokens[4].value);
         }
       } else {
         console.log("Syntax Analysis: Invalid command");
@@ -119,6 +170,9 @@ function runInterpreter() {
   console.log("Supported commands:");
   console.log("- create file <filename>");
   console.log("- delete file <filename>");
+  console.log("- rename file <oldname> to <newname>");
+  console.log("- copy file <source> to <destination>");
+  console.log("- list files");
   console.log("- exit (to end the session)");
   prompt();
 }
